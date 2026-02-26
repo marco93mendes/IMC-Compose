@@ -1,4 +1,4 @@
-package utfpr.marcomendes.imc_compose
+package utfpr.marcomendes.imc_compose.view
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -20,11 +20,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -33,6 +28,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import utfpr.marcomendes.imc_compose.model.ImcViewModel
 import utfpr.marcomendes.imc_compose.ui.theme.IMCComposeTheme
 
 class MainActivity : ComponentActivity() {
@@ -50,27 +47,11 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun IMCScreen(modifier: Modifier = Modifier) {
-    var peso by rememberSaveable { mutableStateOf("") }
-    var altura by rememberSaveable { mutableStateOf("") }
-    var imc by rememberSaveable { mutableStateOf("0.0") }
+fun IMCScreen(
+    modifier: Modifier = Modifier,
+    viewModel: ImcViewModel = viewModel(), ) {
+
     val focusManager = LocalFocusManager.current
-
-    val btCalcular: () -> Unit = {
-        val p = peso.replace(',', '.').toDoubleOrNull()
-        val a = altura.replace(',', '.').toDoubleOrNull()
-        if (p != null && a != null) {
-            val res = (p / (a * a))
-            imc = String.format("%.2f", res)
-        }
-    }
-
-    val btLimpar: () -> Unit = {
-        peso = ""
-        altura = ""
-        imc = "0.0"
-        focusManager.clearFocus()
-    }
 
     Box(
         modifier = modifier.fillMaxSize().padding(top = 32.dp),
@@ -82,16 +63,20 @@ fun IMCScreen(modifier: Modifier = Modifier) {
             modifier = Modifier.width(256.dp)
         ) {
             InputPanel(
-                peso = peso,
-                onPesoChange = { peso = it },
-                altura = altura,
-                onAlturaChange = { altura = it }
+                peso = viewModel.peso,
+                onPesoChange = { viewModel.onPesoChanged(it) },
+                altura = viewModel.altura,
+                onAlturaChange = { viewModel.onAlturaChanged((it)) }
             )
             ButtonsPanel(
-                onCalcularClick = btCalcular,
-                onLimparClick = btLimpar
+                onCalcularClick = { viewModel.calcularIMC() },
+                onLimparClick = {
+                    viewModel.limpar()
+                    focusManager.clearFocus()
+                }
+
             )
-            ResultPanel(imc = imc)
+            ResultPanel(imc = viewModel.imc)
         }
     }
 }
@@ -113,7 +98,7 @@ fun InputPanel(
             OutlinedTextField(
                 value = peso,
                 onValueChange = {
-                    if (it.matches(Regex("^\\d*[,.]?\\d*\$"))) {
+                    if (it.matches(Regex("""^\d*[,.]?\d*$"""))) {
                         onPesoChange(it)
                     }
                 },
@@ -131,7 +116,7 @@ fun InputPanel(
             OutlinedTextField(
                 value = altura,
                 onValueChange = {
-                    if (it.matches(Regex("^\\d*[,.]?\\d*\$"))) {
+                    if (it.matches(Regex("""^\d*[,.]?\d*$"""))) {
                         onAlturaChange(it)
                     }
                 },
